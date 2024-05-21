@@ -1,0 +1,219 @@
+---
+title: "Analyzing Climate Change Impact on Vegetation Dynamics in the Four Corners Region"
+format:
+  html:
+    embed-resources: true
+---
+
+Climate change brings significant challenges to ecosystems all over the world, where the behavior of vegetation is a key indicator of ecological sustainability. This data visualization project shows the impact of climate factors on vegetation cover within the Four Corners region. By analyzing historical and recent data, the aim is to understand the connections between climate factors and vegetation changes. The visualizations show how temperature extremes and seasonal rainfall could affect different types of vegetation throughout the seasons. This helps give insight into how vegetation adapts and remains sustainable under climate change.
+
+
+## Loading the Data
+
+The data utilized in this project:
+
+- Climate and Drought Data from NOAA, which provides important information on temperature, precipitation, and other climate variables. <br><br>
+- Vegetation Cover Data from USGS, which gathers vegetation cover with geographic and temporal variables, giving information about the ecological nature of the NBNM region.
+
+```{python, echo=False}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+```
+
+```{python}
+nearterm = pd.read_csv('data/nearterm_data_2020-2024.csv')
+historic = pd.read_csv('data/NABR_historic.csv')
+```
+
+```{python}
+nearterm.head()
+historic.head()
+```
+
+
+## Data Cleaning 
+
+```{python, echo=False}
+print(nearterm.isnull().sum())
+print(historic.isnull().sum())
+```
+
+Since there was a significant amount of missing data in both datasets, the columns consisting of more than 50% of missing data were dropped. For columns with 50% or less missing values, the missing data was imputed based on the column's median value. The rows with missing data after these processes were then dropped to result in the cleaned datasets ready for analysis. 
+
+```{python}
+nearterm_missing = nearterm.isna().mean().round(4) * 100
+historic_missing = historic.isna().mean().round(4) * 100
+
+print(nearterm_missing)
+print(historic_missing)
+
+t = 0.5
+
+nearterm_cleaned = nearterm.loc[:, nearterm.isna().mean() < t]
+historic_cleaned = historic.loc[:, historic.isna().mean() < t]
+
+nearterm_cleaned.fillna(nearterm_cleaned.median(), inplace=True)
+historic_cleaned.fillna(historic_cleaned.median(), inplace=True)
+
+nearterm_cleaned.dropna(inplace=True)
+historic_cleaned.dropna(inplace=True)
+
+print(nearterm_cleaned.isna().sum())
+print(historic_cleaned.isna().sum())
+```
+
+
+## Climate Variables Over Time
+
+To gain a basic understanding of the climate in the data, plots were created to track the temperature extremes and seasonal precipitation from 1980 to the present as well as from 2020 to 2024.
+
+```{python}
+plt.figure(figsize=(14, 7))
+sns.lineplot(data=historic, x='year', y='Tmax_Summer', label='Max Summer Temperature')
+sns.lineplot(data=historic, x='year', y='Tmin_Winter', label='Min Winter Temperature')
+sns.lineplot(data=historic, x='year', y='PPT_Winter', label='Winter Precipitation')
+sns.lineplot(data=historic, x='year', y='PPT_Summer', label='Summer Precipitation')
+plt.title('Temperature Extremes and Seasonal Precipitation Over Time for Historic Data')
+plt.xlabel('Year')
+plt.ylabel('Value')
+plt.legend()
+plt.show()
+```
+
+There appears to be not much of a difference in the fluctuations and trends between the summer and winter precipitations.  There is slightly more variability and a decreasing trend for the minimum winter temperature in comparison to the maximum summer temperature values, which appears to be more constant over time. 
+
+
+```{python}
+plt.figure(figsize=(14, 7))
+sns.lineplot(data=nearterm, x='year', y='Tmax_Summer', label='Max Summer Temperature')
+sns.lineplot(data=nearterm, x='year', y='Tmin_Winter', label='Min Winter Temperature')
+sns.lineplot(data=nearterm, x='year', y='PPT_Winter', label='Winter Precipitation')
+sns.lineplot(data=nearterm, x='year', y='PPT_Summer', label='Summer Precipitation')
+plt.title('Temperature Extremes and Seasonal Precipitation Over Time for Near Term Data')
+plt.xlabel('Year')
+plt.ylabel('Value')
+plt.legend()
+plt.show()
+```
+
+Each variable appears to have very slight increases and decreases over time, in which the minimum winter temperature is the only variable that has an apparent increasing trend as of recent, but there is almost no variability in the values over time for these variables. 
+
+## Vegetation Types Over Time
+
+To add more context, the plots below show how different vegetation types have responded to these climate changes over the same time periods.
+
+```{python}
+plt.figure(figsize=(14, 7))
+sns.lineplot(data=historic, x='year', y='treecanopy', label='Tree Canopy')
+sns.lineplot(data=historic, x='year', y='Ann_Herb', label='Annual Herbaceous')
+sns.lineplot(data=historic, x='year', y='Bare', label='Bare Ground')
+sns.lineplot(data=historic, x='year', y='Herb', label='Herbaceous')
+plt.title('Distribution of Vegetation Types Over Time for Historic Data')
+plt.xlabel('Year')
+plt.ylabel('Percentage of Vegetation Cover')
+plt.legend()
+plt.show()
+```
+
+Tree canopy cover, Herbaceous, and Annual Herbaceous have shown a relatively constant trend with very little variability, meaning that they may not be as sensitive to climate variations as compared to Bare Ground. Bare Ground has a few peaks with some fluctuations, but the values relatively remain constant over time.
+
+
+```{python}
+plt.figure(figsize=(14, 7))
+sns.lineplot(data=nearterm, x='year', y='treecanopy', label='Tree Canopy')
+sns.lineplot(data=nearterm, x='year', y='Ann_Herb', label='Annual Herbaceous')
+sns.lineplot(data=nearterm, x='year', y='Bare', label='Bare Ground')
+sns.lineplot(data=nearterm, x='year', y='Herb', label='Herbaceous')
+plt.title('Distribution of Vegetation Types Over Time for Near-Term Data')
+plt.xlabel('Year')
+plt.ylabel('Percentage of Vegetation Cover')
+plt.legend()
+plt.show()
+```
+
+There are no apparent trends in any of the vegetation types. This suggests that changes in climate may have no impact to any potential shifts in the amount of covered vegetation for these vegetation types. 
+
+
+## Map of Tree Canopy Cover Over Time 
+
+In order to better understand the distribution of the vegetation types over time, the spatial dimension was added and is shown below.
+
+```{python}
+import plotly.express as px
+
+fig = px.scatter_mapbox(historic, lat="lat", lon="long", color="treecanopy", size="treecanopy",
+                        animation_frame="year", mapbox_style="carto-positron",
+                        title="Tree Canopy Cover Over Time")
+fig.show()
+```
+
+
+This interactive map show to what extent the tree canopy cover changes over different areas and years. This gives a simple way to understand the variations in vegetation at a regional level and which areas have possibly faced issues due to climate changes. 
+
+
+## Climate vs Vegetation Cover
+
+In order to go deeper into observing the relationship between climate and vegetation cover over time, a scatter matrix was created to illustrate how temperature and precipitation influence the different vegetation types and whether there are possible correlations.  
+
+```{python}
+fig = px.scatter_matrix(nearterm, 
+                        dimensions=["Tmax_Summer", "Tmin_Winter", "PPT_Summer", "PPT_Winter", "treecanopy", "Ann_Herb", "Bare", "Herb"], 
+                        color="RCP", 
+                        title="Climate Variables vs. Vegetation Cover",
+                        color_continuous_scale=px.colors.diverging.Spectral)  
+fig.show()
+```
+
+
+Incorporating 'RCP' into the scatter matrix shows how different climate situations could influence the relationships between climate and vegetation types. This gives insight into the potential impact of various greenhouse gas concentration pathways on vegetation durability and sustainability in the Four Corners region. 
+
+
+## Impact of Climate on Shrub Cover Over Time
+
+The interactive visualization below gives the option to select an individual climate variable out of many, such as Tmax_Summer, Tmin_Winter, and PPT_Annual, and compare their trends with shrub cover. Aggregrating the data to show the mean values per year allows clearer patterns and trends in the visual. 
+
+```{python}
+import plotly.graph_objs as go
+import ipywidgets as widgets
+from IPython.display import display
+
+nearterm_agg = nearterm_cleaned.groupby('year').mean().reset_index()
+
+def create_climate_vegetation(climate):
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(x=nearterm_agg['year'], y=nearterm_agg['Shrub'], mode='lines', name='Shrub Cover', line=dict(color='green')))
+    
+    fig.add_trace(go.Scatter(x=nearterm_agg['year'], y=nearterm_agg[climate], mode='lines', name=climate, line=dict(color='blue'), yaxis='y2'))
+    
+    fig.update_layout(
+        title=f'Shrub Cover and {climate} Over Time',
+        xaxis_title='Year',
+        yaxis=dict(title='Shrub Cover'),
+        yaxis2=dict(title=climate, overlaying='y', side='right'),
+        template='plotly',
+        legend=dict(x=0.01, y=0.99)
+    )
+    
+    return fig
+
+fig = create_climate_vegetation('Tmax_Summer')
+fig.show()
+
+climate_dropdown = widgets.Dropdown(
+    options=['Tmax_Summer', 'Tmin_Winter', 'PPT_Summer', 'PPT_Winter', 'PPT_Annual', 'VWC_Winter_whole', 'VWC_Spring_whole', 'VWC_Summer_whole', 'VWC_Fall_whole'],
+    value='Tmax_Summer',
+    description='Climate Variable:',
+)
+
+def update_climate_plot(climate):
+    fig = create_climate_vegetation(climate)
+    fig.show()
+
+widgets.interactive(update_climate_plot, climate=climate_dropdown)
+display(climate_dropdown)
+```
+
+
+Temperature variables seem to follow the values closer and could have a greater impact on shrub cover compared to the soil moisture content and precipitation variables. 
